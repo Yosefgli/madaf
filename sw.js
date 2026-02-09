@@ -1,14 +1,14 @@
-const CACHE_NAME = "restock-pwa-v1";
+const CACHE_NAME = "restock-pwa-v2";
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
+  "/madaf/",
+  "/madaf/index.html",
+  "/madaf/manifest.webmanifest",
+  "/madaf/icons/icon-192.png",
+  "/madaf/icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
