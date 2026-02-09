@@ -43,6 +43,7 @@
   </header>
 
   <main>
+    <section id="pwaStatus" class="status hidden" style="margin-bottom:12px;"></section>
     <!-- SCAN VIEW -->
     <section id="viewScan" class="card">
       <div class="muted">העמוד מוכן לסריקה. אם הסורק “מקליד” ומסיים עם Enter — זה יעבוד אוטומטית.</div>
@@ -140,6 +141,7 @@ const viewManual = $('viewManual');
 const barcodeInput = $('barcodeInput');
 
 const scanStatus = $('scanStatus');
+const pwaStatus = $('pwaStatus');
 const resultLoading = $('resultLoading');
 const productBrief = $('productBrief');
 const productDetails = $('productDetails');
@@ -393,9 +395,31 @@ $('btnManualSubmit').addEventListener('click', async () => {
     if (!viewScan.classList.contains('hidden')) focusScan();
   });
 })();
-    if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js");
+
+function isSecureForPwa() {
+  return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    setStatus(pwaStatus, 'err', 'הדפדפן לא תומך ב-Service Worker — PWA לא תעבוד כאן.');
+    return;
   }
+  if (!isSecureForPwa()) {
+    setStatus(pwaStatus, 'err', 'PWA מחייבת HTTPS או localhost. העלה את האתר ל-HTTPS.');
+    return;
+  }
+  try {
+    await navigator.serviceWorker.register('./sw.js', { scope: './' });
+    setStatus(pwaStatus, 'ok', 'Service Worker נרשם בהצלחה. אפשר להתקין את האפליקציה.');
+  } catch (err) {
+    setStatus(pwaStatus, 'err', 'שגיאה ברישום Service Worker: ' + (err.message || err));
+  }
+}
+
+window.addEventListener('load', () => {
+  registerServiceWorker();
+});
 </script>
 </body>
 </html>
