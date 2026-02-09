@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="he" dir="rtl">
 <head>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#111827">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>מילוי מדף</title>
@@ -391,6 +393,9 @@ $('btnManualSubmit').addEventListener('click', async () => {
     if (!viewScan.classList.contains('hidden')) focusScan();
   });
 })();
+    if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js");
+  }
 </script>
 </body>
 </html>
