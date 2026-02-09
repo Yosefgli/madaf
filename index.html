@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>מילוי מדף</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 0; background: #f6f7f9; }
+    header { padding: 14px 16px; background: #111827; color: #fff; }
+    main { padding: 16px; max-width: 720px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 12px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    button { border: 0; border-radius: 10px; padding: 12px 14px; font-size: 16px; cursor: pointer; }
+    .primary { background: #2563eb; color: white; }
+    .danger { background: #ef4444; color: white; }
+    .ghost { background: #e5e7eb; color: #111827; }
+    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 16px; }
+    .muted { color: #6b7280; font-size: 14px; }
+    .kvs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+    .kv { background:#f9fafb; border:1px solid #eef2f7; border-radius:10px; padding:10px; }
+    .kv .k { font-size: 12px; color:#6b7280; margin-bottom:4px; }
+    .kv .v { font-size: 15px; color:#111827; word-break: break-word; }
+    .hidden { display:none; }
+    .status { padding: 10px 12px; border-radius: 10px; }
+    .status.ok { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .status.err { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid #cbd5e1; border-top-color:#111827; border-radius:50%; animation:spin .8s linear infinite; vertical-align: -2px; margin-left:8px; }
+    @keyframes spin { to { transform: rotate(360deg);} }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div>
+        <div style="font-weight:700;">מילוי מדף</div>
+        <div class="muted" style="color:#cbd5e1;">סרוק ברקוד → הצג מוצר → אישור / ביטול</div>
+      </div>
+      <button class="ghost" id="btnGoManual">מילוי ידני</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- SCAN VIEW -->
+    <section id="viewScan" class="card">
+      <div class="muted">העמוד מוכן לסריקה. אם הסורק “מקליד” ומסיים עם Enter — זה יעבוד אוטומטית.</div>
+
+      <!-- input hidden-ish but focusable -->
+      <div style="margin-top:10px;">
+        <input id="barcodeInput" inputmode="none" autocomplete="off" placeholder="סרוק ברקוד כאן…" />
+        <div class="muted" style="margin-top:6px;">טיפ: אם הפוקוס בורח, תלחץ פעם על השדה.</div>
+      </div>
+
+      <div id="scanStatus" class="status hidden" style="margin-top:12px;"></div>
+    </section>
+
+    <!-- RESULT VIEW -->
+    <section id="viewResult" class="card hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div style="font-weight:700;">נמצא מוצר</div>
+        <div id="resultLoading" class="muted hidden"><span class="spinner"></span>כותב…</div>
+      </div>
+
+      <div id="productBrief" class="muted" style="margin-top:8px;"></div>
+
+      <div id="productDetails" class="kvs" style="margin-top:10px;"></div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" id="btnConfirm">אישור (רשום למילוי)</button>
+        <button class="danger" id="btnCancel">ביטול</button>
+      </div>
+
+      <div id="resultStatus" class="status hidden" style="margin-top:12px;"></div>
+    </section>
+
+    <!-- NOT FOUND VIEW -->
+    <section id="viewNotFound" class="card hidden">
+      <div style="font-weight:700;">בר/compiler: ברקוד לא נמצא</div>
+      <div id="notFoundMsg" class="muted" style="margin-top:6px;"></div>
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="btnNotFoundManual">מילוי ידני</button>
+        <button class="ghost" id="btnNotFoundBack">חזרה לסריקה</button>
+      </div>
+    </section>
+
+    <!-- MANUAL VIEW -->
+    <section id="viewManual" class="card hidden">
+      <div style="font-weight:700;">מילוי ידני</div>
+      <div class="muted" style="margin-top:6px;">למקרה שהמוצר כבר נגמר ואין מה לסרוק.</div>
+
+      <div style="margin-top:12px;">
+        <label class="muted">שם מוצר</label>
+        <input id="mProductName" placeholder="לדוגמה: קמח לבן 1 ק״ג" />
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label class="muted">עמודה</label>
+          <input id="mColumn" placeholder="לדוגמה: 3" />
+        </div>
+        <div>
+          <label class="muted">מדף</label>
+          <input id="mShelf" placeholder="לדוגמה: B" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" id="btnManualSubmit">סיום ורישום</button>
+        <button class="ghost" id="btnManualCancel">ביטול</button>
+      </div>
+
+      <div id="manualStatus" class="status hidden" style="margin-top:12px;"></div>
+    </section>
+  </main>
+
+<script>
+/** =========================
+ *  CONFIG
+ *  ========================= */
+// הדבק כאן את ה-Web app URL מה-Apps Script Deploy
+const API_URL = 'https://script.google.com/macros/s/AKfycbzvONoRwiKOKaqbEpxRjD7K9Av_QKDIQ8WhtqJH-cqhHnqsu7-IG_GR1-_37VScDAvf/exec';
+
+/** =========================
+ *  STATE
+ *  ========================= */
+let lastLookup = null; // נשמור תוצאת lookup לצורך Confirm
+
+/** =========================
+ *  DOM
+ *  ========================= */
+const $ = (id) => document.getElementById(id);
+
+const viewScan = $('viewScan');
+const viewResult = $('viewResult');
+const viewNotFound = $('viewNotFound');
+const viewManual = $('viewManual');
+
+const barcodeInput = $('barcodeInput');
+
+const scanStatus = $('scanStatus');
+const resultLoading = $('resultLoading');
+const productBrief = $('productBrief');
+const productDetails = $('productDetails');
+const resultStatus = $('resultStatus');
+
+const notFoundMsg = $('notFoundMsg');
+
+const manualStatus = $('manualStatus');
+const mProductName = $('mProductName');
+const mColumn = $('mColumn');
+const mShelf = $('mShelf');
+
+/** =========================
+ *  HELPERS
+ *  ========================= */
+function showOnly(view) {
+  [viewScan, viewResult, viewNotFound, viewManual].forEach(v => v.classList.add('hidden'));
+  view.classList.remove('hidden');
+}
+
+function setStatus(el, kind, msg) {
+  el.className = 'status ' + (kind === 'ok' ? 'ok' : 'err');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function clearStatus(el) {
+  el.classList.add('hidden');
+  el.textContent = '';
+}
+
+function focusScan() {
+  // פוקוס קשוח כדי למנוע "בריחה"
+  setTimeout(() => barcodeInput.focus(), 50);
+}
+
+function sanitizeBarcode(s) {
+  return String(s || '').trim();
+}
+
+/** =========================
+ *  API
+ *  ========================= */
+async function apiLookup(barcode) {
+  const url = `${API_URL}?action=lookup&barcode=${encodeURIComponent(barcode)}`;
+  const r = await fetch(url, { method: 'GET' });
+  return await r.json();
+}
+
+async function apiRestockScan({ barcode, productName, column, shelf }) {
+  const payload = {
+    action: 'restock',
+    mode: 'scan',
+    barcode, productName, column, shelf
+  };
+
+  // חשוב: text/plain כדי למנוע preflight
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  return await r.json();
+}
+
+async function apiRestockManual({ productName, column, shelf }) {
+  const payload = {
+    action: 'restock',
+    mode: 'manual',
+    productName, column, shelf
+  };
+
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  return await r.json();
+}
+
+/** =========================
+ *  UI FLOW
+ *  ========================= */
+function resetToScan() {
+  lastLookup = null;
+  barcodeInput.value = '';
+  clearStatus(scanStatus);
+  clearStatus(resultStatus);
+  clearStatus(manualStatus);
+  showOnly(viewScan);
+  focusScan();
+}
+
+function renderProductDetails(rowObj) {
+  productDetails.innerHTML = '';
+  const entries = Object.entries(rowObj || {});
+  // להראות רק שדות לא ריקים, ובמקסימום 20 כדי לא להציף
+  const filtered = entries.filter(([k,v]) => String(v ?? '').trim() !== '').slice(0, 20);
+
+  for (const [k, v] of filtered) {
+    const div = document.createElement('div');
+    div.className = 'kv';
+    div.innerHTML = `<div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(String(v))}</div>`;
+    productDetails.appendChild(div);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/** =========================
+ *  EVENTS
+ *  ========================= */
+// סריקה: סורקים → הסורק בדרך כלל "מקליד" ואז Enter
+barcodeInput.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+
+  const barcode = sanitizeBarcode(barcodeInput.value);
+  if (!barcode) return;
+
+  clearStatus(scanStatus);
+  setStatus(scanStatus, 'ok', 'מחפש מוצר…');
+
+  try {
+    const res = await apiLookup(barcode);
+    if (!res.ok) throw new Error(res.error || 'Lookup failed');
+
+    if (!res.found) {
+      showOnly(viewNotFound);
+      notFoundMsg.textContent = `ברקוד: ${barcode}. לא נמצא ב-Products.`;
+      focusScan(); // לא קריטי פה, אבל נוח כשחוזרים
+      return;
+    }
+
+    lastLookup = res;
+
+    // הצגה
+    const p = res.product || {};
+    productBrief.textContent = `ברקוד: ${p.barcode || barcode} | שם: ${p.productName || '(ללא שם)'} | עמודה: ${p.column || '-'} | מדף: ${p.shelf || '-'}`;
+    renderProductDetails(res.rowObj);
+
+    clearStatus(resultStatus);
+    resultLoading.classList.add('hidden');
+    showOnly(viewResult);
+  } catch (err) {
+    setStatus(scanStatus, 'err', 'שגיאה בחיפוש: ' + (err.message || err));
+    showOnly(viewScan);
+  } finally {
+    // כדי שלא ילחצו Enter שוב על אותו ברקוד בטעות
+    barcodeInput.select();
+    focusScan();
+  }
+});
+
+// כפתור ביטול (מהתוצאה)
+$('btnCancel').addEventListener('click', () => {
+  resetToScan();
+});
+
+// כפתור אישור (כותב לשיטס)
+$('btnConfirm').addEventListener('click', async () => {
+  if (!lastLookup || !lastLookup.found) {
+    setStatus(resultStatus, 'err', 'אין מוצר מאושר לכתיבה.');
+    return;
+  }
+  const p = lastLookup.product || {};
+  resultLoading.classList.remove('hidden');
+  clearStatus(resultStatus);
+
+  try {
+    const res = await apiRestockScan({
+      barcode: p.barcode || '',
+      productName: p.productName || '',
+      column: p.column || '',
+      shelf: p.shelf || ''
+    });
+
+    if (!res.ok) throw new Error(res.error || 'Write failed');
+
+    setStatus(resultStatus, 'ok', `נרשם בהצלחה: ${res.date} ${res.time}`);
+    // לחזור לסריקה מהר
+    setTimeout(resetToScan, 450);
+  } catch (err) {
+    setStatus(resultStatus, 'err', 'שגיאה בכתיבה: ' + (err.message || err));
+  } finally {
+    resultLoading.classList.add('hidden');
+  }
+});
+
+// כפתורי מעבר למילוי ידני
+$('btnGoManual').addEventListener('click', () => openManual());
+$('btnNotFoundManual').addEventListener('click', () => openManual());
+
+function openManual() {
+  clearStatus(manualStatus);
+  mProductName.value = '';
+  mColumn.value = '';
+  mShelf.value = '';
+  showOnly(viewManual);
+  setTimeout(() => mProductName.focus(), 50);
+}
+
+// חזרה מסך לא נמצא
+$('btnNotFoundBack').addEventListener('click', () => resetToScan());
+
+// ביטול במסך ידני
+$('btnManualCancel').addEventListener('click', () => resetToScan());
+
+// שליחה ידנית
+$('btnManualSubmit').addEventListener('click', async () => {
+  clearStatus(manualStatus);
+
+  const productName = (mProductName.value || '').trim();
+  const column = (mColumn.value || '').trim();
+  const shelf = (mShelf.value || '').trim();
+
+  if (!productName) {
+    setStatus(manualStatus, 'err', 'חובה למלא שם מוצר.');
+    return;
+  }
+  if (!column || !shelf) {
+    setStatus(manualStatus, 'err', 'חובה למלא גם עמודה וגם מדף.');
+    return;
+  }
+
+  setStatus(manualStatus, 'ok', 'רושם…');
+
+  try {
+    const res = await apiRestockManual({ productName, column, shelf });
+    if (!res.ok) throw new Error(res.error || 'Write failed');
+
+    setStatus(manualStatus, 'ok', `נרשם בהצלחה: ${res.date} ${res.time}`);
+    setTimeout(resetToScan, 450);
+  } catch (err) {
+    setStatus(manualStatus, 'err', 'שגיאה בכתיבה: ' + (err.message || err));
+  }
+});
+
+// באתחול
+(function init() {
+  if (!API_URL || API_URL.includes('PASTE_YOUR')) {
+    setStatus(scanStatus, 'err', 'חסר API_URL. הדבק את ה-Web app URL בקוד.');
+  }
+  resetToScan();
+
+  // אם המשתמש נוגע במסך – להחזיר פוקוס לסריקה
+  document.addEventListener('click', () => {
+    if (!viewScan.classList.contains('hidden')) focusScan();
+  });
+})();
+</script>
+</body>
+</html>
